@@ -15,5 +15,7 @@ class Event (
     val id : Long = 0L,
 
     var name : String = "",
-    var description : String? = null,
+    var venue : String = "",
+    var totalTickets : Int = 0,
+    var availableTickets : Int = 0,
 )
