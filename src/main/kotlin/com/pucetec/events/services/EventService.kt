@@ -8,35 +8,51 @@ import com.pucetec.events.exceptions.InvalidCapacityException
 import com.pucetec.events.mappers.toEntity
 import com.pucetec.events.mappers.toResponse
 import com.pucetec.events.repositories.EventRepository
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
 
 @Service
-@Transactional
-class EventService(
-    private val eventRepository: EventRepository
-) {
+class EventService (
+    private val eventRepository : EventRepository
+){
+    private val logger = LoggerFactory.getLogger(EventService::class.java)
+
     fun createEvent(request: EventRequest): EventResponse {
-        if (request.name.isBlank() || request.venue.isBlank()) {
-            throw BlankFieldException("Name or venue cannot be blank")
+        logger.info("Iniciando la creacion del evento: ${request.name}")
+
+        if (
+            request.name.isBlank() || request.venue.isBlank()
+        ){
+            logger.warn("Validacion fallida: Nombre o lugar en blanco")
+            throw BlankFieldException()
         }
-        if (request.totalTickets < 1) {
-            throw InvalidCapacityException("Total tickets capacity must be at least 1")
+
+        if (
+            request.totalTickets < 1
+        ){
+            logger.warn("Validacion fallida: Capacidad de tickets invalida (${request.totalTickets}")
+            throw InvalidCapacityException()
         }
-        val event = request.toEntity()
-        val saved = eventRepository.save(event)
-        return saved.toResponse()
+
+        val eventEntity = request.toEntity()
+        val savedEvent = eventRepository.save(eventEntity)
+        logger.info("Evento guardado con ID: ${savedEvent.id}")
+        return savedEvent.toResponse()
     }
 
-    @Transactional(readOnly = true)
-    fun getAllEvents(): List<EventResponse> {
-        return eventRepository.findAll().map { it.toResponse() }
+    fun getAllEvents() : List<EventResponse> {
+        logger.info("Obtenendo la lista de eventos")
+        val events = eventRepository.findAll()
+        return events.map { it.toResponse() }
     }
 
-    @Transactional(readOnly = true)
-    fun getEventById(id: Long): EventResponse {
-        val event = eventRepository.findById(id)
-            .orElseThrow { EventNotFoundException("Event not found with ID: $id") }
+
+    fun getEventById(id: Long) : EventResponse {
+        logger.info("Buscando evento con ID: $id")
+        val event = eventRepository.findById(id).orElseThrow {
+            logger.warn("No se encontro el evento con ID: $id")
+            throw EventNotFoundException()
+        }
         return event.toResponse()
     }
 }

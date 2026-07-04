@@ -9,6 +9,7 @@ import com.pucetec.events.mappers.toResponse
 import com.pucetec.events.repositories.AttendeeRepository
 import com.pucetec.events.repositories.EventRepository
 import com.pucetec.events.repositories.ReservationRepository
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
@@ -20,20 +21,45 @@ class ReservationService(
     private val attendeeRepository: AttendeeRepository,
     private val eventRepository: EventRepository
 ) {
+
+    companion object {
+        private val logger = LoggerFactory.getLogger(ReservationService::class.java)
+    }
+
     fun createReservation(request: ReservationRequest): ReservationResponse {
+
+        logger.info(
+            "Creating reservation for attendee={} event={}",
+            request.attendeeId,
+            request.eventId
+        )
+
         val attendee = attendeeRepository.findById(request.attendeeId)
-            .orElseThrow { AttendeeNotFoundException("Attendee not found with ID: ${request.attendeeId}") }
+            .orElseThrow {
+                logger.warn("Attendee not found: {}", request.attendeeId)
+                AttendeeNotFoundException(": ${request.attendeeId}")
+            }
 
         val event = eventRepository.findById(request.eventId)
-            .orElseThrow { EventNotFoundException("Event not found with ID: ${request.eventId}") }
+            .orElseThrow {
+                logger.warn("Event not found: {}", request.eventId)
+                EventNotFoundException("Event not found with ID: ${request.eventId}")
+            }
 
         if (event.availableTickets <= 0) {
-            throw SoldOutException("Event is sold out")
+            logger.warn("Reservation rejected: event {} is sold out", event.id)
+            throw SoldOutException()
         }
 
-        val activeReservations = reservationRepository.countByAttendeeIdAndStatus(attendee.id, "ACTIVE")
+        val activeReservations =
+            reservationRepository.countByAttendeeIdAndStatus(attendee.id, "ACTIVE")
+
         if (activeReservations >= 4) {
-            throw ReservationLimitExceededException("Attendee already has 4 active reservations")
+            logger.warn(
+                "Reservation rejected: attendee {} reached reservation limit",
+                attendee.id
+            )
+            throw ReservationLimitExceededException()
         }
 
         val updatedEvent = Event(
@@ -43,6 +69,7 @@ class ReservationService(
             totalTickets = event.totalTickets,
             availableTickets = event.availableTickets - 1
         )
+
         eventRepository.save(updatedEvent)
 
         val reservation = Reservation(
@@ -51,19 +78,35 @@ class ReservationService(
             status = "ACTIVE",
             createdAt = LocalDateTime.now()
         )
+
         val saved = reservationRepository.save(reservation)
+
+        logger.info(
+            "Reservation {} created successfully. Remaining tickets: {}",
+            saved.id,
+            updatedEvent.availableTickets
+        )
+
         return saved.toResponse()
     }
 
     fun cancelReservation(id: Long): ReservationResponse {
+
+        logger.info("Cancelando reservacion {}", id)
+
         val reservation = reservationRepository.findById(id)
-            .orElseThrow { ReservationNotFoundException("Reservation not found with ID: $id") }
+            .orElseThrow {
+                logger.warn("Reservation {} not found", id)
+                ReservationNotFoundException()
+            }
 
         if (reservation.status == "CANCELLED") {
-            throw ReservationAlreadyCancelledException("Reservation is already cancelled")
+            logger.warn("La reservacion {} esta cancelada", id)
+            throw ReservationAlreadyCancelledException()
         }
 
         val event = reservation.event
+
         val updatedEvent = Event(
             id = event.id,
             name = event.name,
@@ -71,6 +114,7 @@ class ReservationService(
             totalTickets = event.totalTickets,
             availableTickets = event.availableTickets + 1
         )
+
         eventRepository.save(updatedEvent)
 
         val updatedReservation = Reservation(
@@ -80,12 +124,27 @@ class ReservationService(
             status = "CANCELLED",
             createdAt = reservation.createdAt
         )
+
         val saved = reservationRepository.save(updatedReservation)
+
+        logger.info(
+            "Reservation {} cancelled successfully. Available tickets: {}",
+            id,
+            updatedEvent.availableTickets
+        )
+
         return saved.toResponse()
     }
 
     @Transactional(readOnly = true)
     fun getAllReservations(): List<ReservationResponse> {
-        return reservationRepository.findAll().map { it.toResponse() }
+
+        logger.info("Retrieving all reservations")
+
+        val reservations = reservationRepository.findAll().map { it.toResponse() }
+
+        logger.info("Retrieved {} reservations", reservations.size)
+
+        return reservations
     }
 }

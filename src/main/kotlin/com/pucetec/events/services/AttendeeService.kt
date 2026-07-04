@@ -6,6 +6,7 @@ import com.pucetec.events.exceptions.BlankFieldException
 import com.pucetec.events.mappers.toEntity
 import com.pucetec.events.mappers.toResponse
 import com.pucetec.events.repositories.AttendeeRepository
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
@@ -14,11 +15,23 @@ import org.springframework.transaction.annotation.Transactional
 class AttendeeService(
     private val attendeeRepository: AttendeeRepository
 ) {
+
+    companion object {
+        private val logger = LoggerFactory.getLogger(AttendeeService::class.java)
+    }
+
     fun createAttendee(request: AttendeeRequest): AttendeeResponse {
+        logger.info("Creando con email={}", request.email)
+
         if (request.name.isBlank() || request.email.isBlank()) {
-            throw BlankFieldException("Name or email cannot be blank")
+            logger.warn("Validacion fallida: Nombre o email en blanco")
+            throw BlankFieldException()
         }
+
         val saved = attendeeRepository.save(request.toEntity())
+
+        logger.info("Attendee creado con exito with id={}", saved.id)
+
         return saved.toResponse()
     }
 }
