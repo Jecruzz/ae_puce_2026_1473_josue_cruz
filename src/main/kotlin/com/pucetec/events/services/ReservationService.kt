@@ -2,7 +2,6 @@ package com.pucetec.events.services
 
 import com.pucetec.events.dto.ReservationRequest
 import com.pucetec.events.dto.ReservationResponse
-import com.pucetec.events.entities.Event
 import com.pucetec.events.entities.Reservation
 import com.pucetec.events.exceptions.*
 import com.pucetec.events.mappers.toResponse
@@ -62,19 +61,12 @@ class ReservationService(
             throw ReservationLimitExceededException()
         }
 
-        val updatedEvent = Event(
-            id = event.id,
-            name = event.name,
-            venue = event.venue,
-            totalTickets = event.totalTickets,
-            availableTickets = event.availableTickets - 1
-        )
-
-        eventRepository.save(updatedEvent)
+        event.availableTickets -= 1
+        eventRepository.save(event)
 
         val reservation = Reservation(
             attendee = attendee,
-            event = updatedEvent,
+            event = event,
             status = "ACTIVE",
             createdAt = LocalDateTime.now()
         )
@@ -84,7 +76,7 @@ class ReservationService(
         logger.info(
             "Reservation {} created successfully. Remaining tickets: {}",
             saved.id,
-            updatedEvent.availableTickets
+            event.availableTickets
         )
 
         return saved.toResponse()
@@ -107,20 +99,13 @@ class ReservationService(
 
         val event = reservation.event
 
-        val updatedEvent = Event(
-            id = event.id,
-            name = event.name,
-            venue = event.venue,
-            totalTickets = event.totalTickets,
-            availableTickets = event.availableTickets + 1
-        )
-
-        eventRepository.save(updatedEvent)
+        event.availableTickets += 1
+        eventRepository.save(event)
 
         val updatedReservation = Reservation(
             id = reservation.id,
             attendee = reservation.attendee,
-            event = updatedEvent,
+            event = event,
             status = "CANCELLED",
             createdAt = reservation.createdAt
         )
@@ -130,7 +115,7 @@ class ReservationService(
         logger.info(
             "Reservation {} cancelled successfully. Available tickets: {}",
             id,
-            updatedEvent.availableTickets
+            event.availableTickets
         )
 
         return saved.toResponse()

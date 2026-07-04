@@ -21,7 +21,7 @@ class Reservation (
 
     var status: String = "",
 
-    @Column("creates_at")
+    @Column(name = "creates_at")
     var createdAt: LocalDateTime = LocalDateTime.now(),
 
     @ManyToOne(fetch = FetchType.LAZY)
