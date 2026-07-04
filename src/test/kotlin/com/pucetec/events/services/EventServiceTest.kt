@@ -44,12 +44,21 @@ class EventServiceTest {
 
     @Test
     fun `createEvent throws BlankFieldException when name is blank`() {
+        // Valida que lance excepcion cuando el nombre es vacio
         val request = EventRequest("  ", "Estadio", 100)
         assertThrows<BlankFieldException> { eventService.createEvent(request) }
     }
 
     @Test
+    fun `createEvent throws BlankFieldException when venue is blank`() {
+        // Valida que lance excepcion cuando el lugar es vacio
+        val request = EventRequest("Rock", "  ", 100)
+        assertThrows<BlankFieldException> { eventService.createEvent(request) }
+    }
+
+    @Test
     fun `createEvent throws InvalidCapacityException when capacity is 0`() {
+        // Valida que lance excepcion cuando la capacidad es menor a 1
         val request = EventRequest("Rock", "Estadio", 0)
         assertThrows<InvalidCapacityException> { eventService.createEvent(request) }
     }

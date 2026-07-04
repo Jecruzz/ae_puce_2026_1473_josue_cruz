@@ -66,6 +66,17 @@ class GlobalExceptionHandler {
         return ResponseEntity(ExceptionResponse(ex.message, "Business Logic"), HttpStatus.CONFLICT)
     }
 
+    // --- ERROR 415: Unsupported Media Type ---
+
+    @ExceptionHandler(org.springframework.web.HttpMediaTypeNotSupportedException::class)
+    fun handleHttpMediaTypeNotSupported(ex: org.springframework.web.HttpMediaTypeNotSupportedException): ResponseEntity<ExceptionResponse> {
+        logger.warn("Tipo de contenido no soportado: {}", ex.contentType)
+        return ResponseEntity(
+            ExceptionResponse("Content-Type '${ex.contentType}' no es soportado. Use application/json.", "Validation"),
+            HttpStatus.UNSUPPORTED_MEDIA_TYPE
+        )
+    }
+
     // --- CATCH-ALL ERRORES 500 ---
 
     @ExceptionHandler(Exception::class)
