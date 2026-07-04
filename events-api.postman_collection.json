@@ -1,0 +1,351 @@
+{
+	"info": {
+		"name": "Events API",
+		"description": "## Microservicio events\n\nPlataforma de reserva de entradas para eventos con autenticación AWS Cognito.\n\n### 🔑 Obtener token de acceso\n\n1. **Regístrate/Inicia sesión** en la Hosted UI de Cognito:\n   ```\n   https://us-east-1yzwnali2a.auth.us-east-1.amazoncognito.com/login?client_id=3gv2oqe4niko3s47srn1kitsk6&response_type=code&scope=email+openid+phone&redirect_uri=https%3A%2F%2Fd84l1y8p4kdic.cloudfront.net\n   ```\n\n2. Copia el parámetro `code` de la URL de redirección después del login.\n\n3. Usa el request **Cognito - Get Token** para canjear el código por un `access_token`.\n\n4. Copia el `access_token` en la variable de colección `access_token`.\n\n### 📋 Endpoints\n\n| Método | Ruta | Acceso |\n|--------|------|--------|\n| GET | /api/events | 🔓 Público |\n| GET | /api/events/{id} | 🔓 Público |\n| POST | /api/events | 🔒 Privado |\n| POST | /api/attendees | 🔒 Privado |\n| POST | /api/reservations | 🔒 Privado |\n| PUT | /api/reservations/{id}/cancel | 🔒 Privado |\n| GET | /api/reservations | 🔒 Privado |",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8080",
+			"type": "string"
+		},
+		{
+			"key": "access_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "event_id",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "reservation_id",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "cognito_code",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "cognito_domain",
+			"value": "https://us-east-1yzwnali2a.auth.us-east-1.amazoncognito.com",
+			"type": "string"
+		},
+		{
+			"key": "client_id",
+			"value": "3gv2oqe4niko3s47srn1kitsk6",
+			"type": "string"
+		},
+		{
+			"key": "client_secret",
+			"value": "14qdd388f1j6fge52el3l5r2ouvcg5sperlno3701t2jj1chgeiu",
+			"type": "string"
+		},
+		{
+			"key": "redirect_uri",
+			"value": "https://d84l1y8p4kdic.cloudfront.net",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "🔑 Autenticación",
+			"description": "Flujo para obtener el token de acceso de AWS Cognito.",
+			"item": [
+				{
+					"name": "🔗 Hosted UI (Login/Register)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{cognito_domain}}/login?client_id={{client_id}}&response_type=code&scope=email+openid+phone&redirect_uri={{redirect_uri}}",
+							"host": ["{{cognito_domain}}"],
+							"path": ["login"],
+							"query": [
+								{
+									"key": "client_id",
+									"value": "{{client_id}}"
+								},
+								{
+									"key": "response_type",
+									"value": "code"
+								},
+								{
+									"key": "scope",
+									"value": "email openid phone"
+								},
+								{
+									"key": "redirect_uri",
+									"value": "{{redirect_uri}}"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Cognito - Get Token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData.access_token) {",
+									"    pm.collectionVariables.set('access_token', jsonData.access_token);",
+									"    console.log('Token de acceso guardado exitosamente');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/x-www-form-urlencoded"
+							}
+						],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "grant_type",
+									"value": "authorization_code",
+									"type": "text"
+								},
+								{
+									"key": "client_id",
+									"value": "{{client_id}}",
+									"type": "text"
+								},
+								{
+									"key": "client_secret",
+									"value": "{{client_secret}}",
+									"type": "text"
+								},
+								{
+									"key": "code",
+									"value": "{{cognito_code}}",
+									"description": "Copia aquí el código que obtuviste de la URL de redirección después del login en la Hosted UI",
+									"type": "text"
+								},
+								{
+									"key": "redirect_uri",
+									"value": "{{redirect_uri}}",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{cognito_domain}}/oauth2/token",
+							"host": ["{{cognito_domain}}"],
+							"path": ["oauth2", "token"]
+						},
+						"description": "Canjea el authorization_code por un access_token.\n\n1. Abre el request 🔗 Hosted UI, regístrate/inicia sesión\n2. Copia el parámetro `code` de la URL de redirección\n3. Pégalo en la variable `cognito_code`\n4. Ejecuta este request\n5. El token se guarda automáticamente en la variable `access_token`"
+					}
+				}
+			]
+		},
+		{
+			"name": "🔓 Públicos",
+			"description": "Endpoints públicos que no requieren autenticación.",
+			"item": [
+				{
+					"name": "GET /api/events",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/events",
+							"host": ["{{base_url}}"],
+							"path": ["api", "events"]
+						}
+					},
+					"response": [
+						{
+							"name": "Lista de eventos",
+							"status": "OK",
+							"code": 200,
+							"header": [],
+							"body": "[]"
+						}
+					]
+				},
+				{
+					"name": "GET /api/events/{id}",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/events/{{event_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "events", "{{event_id}}"]
+						}
+					},
+					"response": [
+						{
+							"name": "Detalle de evento",
+							"status": "OK",
+							"code": 200,
+							"header": [],
+							"body": "{\n  \"id\": 1,\n  \"name\": \"Concierto\",\n  \"venue\": \"Estadio\",\n  \"totalTickets\": 100,\n  \"availableTickets\": 100\n}"
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "🔒 Privados",
+			"description": "Endpoints privados que requieren un Bearer token válido de AWS Cognito en el header `Authorization`.",
+			"item": [
+				{
+					"name": "POST /api/events",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Concierto de Rock\",\n  \"venue\": \"Estadio Olímpico\",\n  \"totalTickets\": 100\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/events",
+							"host": ["{{base_url}}"],
+							"path": ["api", "events"]
+						}
+					}
+				},
+				{
+					"name": "POST /api/attendees",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Juan Pérez\",\n  \"email\": \"juan.perez@example.com\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/attendees",
+							"host": ["{{base_url}}"],
+							"path": ["api", "attendees"]
+						}
+					}
+				},
+				{
+					"name": "POST /api/reservations",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"attendeeId\": 1,\n  \"eventId\": 1\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/reservations",
+							"host": ["{{base_url}}"],
+							"path": ["api", "reservations"]
+						}
+					}
+				},
+				{
+					"name": "PUT /api/reservations/{id}/cancel",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{base_url}}/api/reservations/{{reservation_id}}/cancel",
+							"host": ["{{base_url}}"],
+							"path": ["api", "reservations", "{{reservation_id}}", "cancel"]
+						}
+					}
+				},
+				{
+					"name": "GET /api/reservations",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/reservations",
+							"host": ["{{base_url}}"],
+							"path": ["api", "reservations"]
+						}
+					}
+				}
+			]
+		}
+	]
+}

@@ -37,7 +37,7 @@ class ReservationServiceTest {
         val request = ReservationRequest(1L, 2L)
         val attendee = Attendee(1L, "Juan", "juan@gmail.com")
         val event = Event(2L, "Concierto", "Estadio", 10, 10)
-        val reservation = Reservation(1L, attendee, event, "ACTIVE", LocalDateTime.now())
+        val reservation = Reservation(1L, "ACTIVE", LocalDateTime.now(), event, attendee)
 
         `when`(attendeeRepository.findById(1L)).thenReturn(Optional.of(attendee))
         `when`(eventRepository.findById(2L)).thenReturn(Optional.of(event))
@@ -98,10 +98,10 @@ class ReservationServiceTest {
     fun `cancelReservation cancels reservation when active`() {
         val attendee = Attendee(1L, "David", "dasalmon@gmail.com")
         val event = Event(2L, "Concierto", "Estadio", 10, 5)
-        val reservation = Reservation(10L, attendee, event, "ACTIVE", LocalDateTime.now())
+        val reservation = Reservation(10L, "ACTIVE", LocalDateTime.now(), event, attendee)
 
         `when`(reservationRepository.findById(10L)).thenReturn(Optional.of(reservation))
-        `when`(reservationRepository.save(any(Reservation::class.java))).thenReturn(reservation)
+        `when`(reservationRepository.save(any(Reservation::class.java))).thenAnswer { it.getArgument<Reservation>(0) }
 
         val response = reservationService.cancelReservation(10L)
 
@@ -119,7 +119,7 @@ class ReservationServiceTest {
     fun `cancelReservation throws ReservationAlreadyCancelledException if already cancelled`() {
         val attendee = Attendee(1L, "Juan", "juan@gmail.com")
         val event = Event(2L, "Concierto", "Estadio", 10, 5)
-        val reservation = Reservation(10L, attendee, event, "CANCELLED", LocalDateTime.now())
+        val reservation = Reservation(10L, "CANCELLED", LocalDateTime.now(), event, attendee)
 
         `when`(reservationRepository.findById(10L)).thenReturn(Optional.of(reservation))
 
@@ -130,7 +130,7 @@ class ReservationServiceTest {
     fun `getAllReservations returns list`() {
         val attendee = Attendee(1L, "Juan", "juan@gmail.com")
         val event = Event(2L, "Concierto", "Estadio", 10, 5)
-        val reservation = Reservation(10L, attendee, event, "ACTIVE", LocalDateTime.now())
+        val reservation = Reservation(10L, "ACTIVE", LocalDateTime.now(), event, attendee)
 
         `when`(reservationRepository.findAll()).thenReturn(listOf(reservation))
 

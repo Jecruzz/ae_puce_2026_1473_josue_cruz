@@ -19,6 +19,8 @@ class Reservation (
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id : Long = 0L,
 
+    var status: String = "",
+
     @Column("creates_at")
     var createdAt: LocalDateTime = LocalDateTime.now(),
 

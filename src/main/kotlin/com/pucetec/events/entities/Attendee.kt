@@ -6,16 +6,13 @@ import jakarta.persistence.GenerationType
 import jakarta.persistence.Table
 import jakarta.persistence.Id
 
-
 @Entity
-@Table("attendees")
+@Table(name = "attendees")
 class Attendee (
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long = 0,
 
     var name: String = "",
-    var email: String = "",
-
-
-    )
+    var email: String = ""
+)
